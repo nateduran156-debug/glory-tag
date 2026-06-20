@@ -5,34 +5,38 @@ const noblox = require("noblox.js");
 const roleCommand = require("./commands/role");
 const stripCommand = require("./commands/strip");
 const whitelistCommand = require("./commands/whitelist");
+const setcookieCommand = require("./commands/setcookie");
+const { loadCookie, applyCookie } = require("./utils/cookie");
 
 const TOKEN = process.env.DISCORD_BOT_TOKEN;
-const ROBLOX_COOKIE = process.env.ROBLOX_COOKIE;
 
 if (!TOKEN) {
   console.error("❌ DISCORD_BOT_TOKEN is not set in your .env file.");
-  process.exit(1);
-}
-if (!ROBLOX_COOKIE) {
-  console.error("❌ ROBLOX_COOKIE is not set in your .env file.");
   process.exit(1);
 }
 
 const client = new Client({ intents: [GatewayIntentBits.Guilds] });
 
 (async () => {
-  try {
-    await noblox.setCookie(ROBLOX_COOKIE.trim(), false);
-    const me = await noblox.getCurrentUser();
-    console.log(`✅ Logged into Roblox as: ${me.UserName} (${me.UserID})`);
-  } catch (err) {
-    console.error("⚠️  Could not verify Roblox login, continuing anyway:", err.message);
+  const cookie = loadCookie();
+
+  if (!cookie) {
+    console.warn("⚠️  No Roblox cookie found. Use /setcookie in a DM with the bot to set one.");
+  } else {
+    try {
+      await applyCookie(cookie);
+      const me = await noblox.getCurrentUser();
+      console.log(`✅ Logged into Roblox as: ${me.UserName} (${me.UserID})`);
+    } catch (err) {
+      console.error("⚠️  Could not verify Roblox login, continuing anyway:", err.message);
+      console.error("   Use /setcookie in a DM with the bot to update the cookie.");
+    }
   }
 
   client.once(Events.ClientReady, (c) => {
     console.log(`✅ Discord bot ready as: ${c.user.tag}`);
     if (!process.env.BOT_OWNER_ID) {
-      console.warn("⚠️  BOT_OWNER_ID is not set — no one can use the bot until you whitelist someone or set this.");
+      console.warn("⚠️  BOT_OWNER_ID is not set — set it in .env to your Discord user ID.");
     }
   });
 
@@ -45,6 +49,8 @@ const client = new Client({ intents: [GatewayIntentBits.Guilds] });
           await stripCommand.execute(interaction);
         } else if (interaction.commandName === "whitelist") {
           await whitelistCommand.execute(interaction);
+        } else if (interaction.commandName === "setcookie") {
+          await setcookieCommand.execute(interaction);
         }
       } else if (interaction.isStringSelectMenu()) {
         if (interaction.customId.startsWith("role_select_")) {

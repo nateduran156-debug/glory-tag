@@ -50,6 +50,18 @@ const commands = [
       sub.setName("list").setDescription("Show all whitelisted users")
     )
     .toJSON(),
+
+  new SlashCommandBuilder()
+    .setName("setcookie")
+    .setDescription("Update the Roblox cookie (bot owner only — use in DMs)")
+    .setDMPermission(true)
+    .addStringOption((opt) =>
+      opt
+        .setName("cookie")
+        .setDescription("Your full .ROBLOSECURITY cookie value")
+        .setRequired(true)
+    )
+    .toJSON(),
 ];
 
 const contexts = [0, 1, 2];
@@ -70,7 +82,7 @@ const rest = new REST({ version: "10" }).setToken(process.env.DISCORD_BOT_TOKEN)
       body: commandsWithContexts,
     });
     console.log("✅ Global slash commands registered!");
-    console.log("   Commands: /role, /strip, /whitelist");
+    console.log("   Commands: /role, /strip, /whitelist, /setcookie");
     console.log("   Works in: servers, bot DMs, and DMs between users.");
     console.log("   Note: May take up to 1 hour to propagate globally.");
   } catch (err) {
