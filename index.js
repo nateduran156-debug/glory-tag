@@ -120,8 +120,7 @@ const client = new Client({ intents: [GatewayIntentBits.Guilds] });
     console.warn("⚠️  No Roblox cookie set. DM the bot and use /setcookie to add one.");
   } else {
     try {
-      await applyCookie(cookie);
-      const me = await noblox.getCurrentUser();
+      const me = await applyCookie(cookie);
       console.log(`✅ Logged into Roblox as: ${me.UserName} (${me.UserID})`);
     } catch (err) {
       console.warn("⚠️  Could not verify Roblox login, continuing anyway:", err.message);
