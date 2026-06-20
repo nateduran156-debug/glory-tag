@@ -1,4 +1,9 @@
-const { EmbedBuilder } = require("discord.js");
+const {
+  ContainerBuilder,
+  TextDisplayBuilder,
+  SeparatorBuilder,
+  MessageFlags,
+} = require("discord.js");
 const noblox = require("noblox.js");
 const { isAllowed } = require("../utils/whitelist");
 
@@ -19,40 +24,35 @@ async function getAllGroupMembers() {
   return members;
 }
 
+function cv2Error(text) {
+  return {
+    components: [
+      new ContainerBuilder().addTextDisplayComponents(
+        new TextDisplayBuilder().setContent(text)
+      ),
+    ],
+    flags: MessageFlags.IsComponentsV2,
+  };
+}
+
 module.exports = {
   name: "strip",
 
   async execute(interaction) {
-    await interaction.deferReply({ ephemeral: true });
+    await interaction.deferReply();
 
     if (!isAllowed(interaction.user.id)) {
-      return interaction.editReply("❌ You are not whitelisted to use this bot.");
+      return interaction.editReply(cv2Error("You are not whitelisted."));
     }
 
     const target = interaction.options.getString("target").trim();
 
-    if (target.toLowerCase() === "everyone") {
-      const confirmEmbed = new EmbedBuilder()
-        .setTitle("⚠️ Strip Everyone")
-        .setDescription(
-          `You are about to **exile every member** from group **${GROUP_ID}**.\n\nThis action cannot be undone. Reply with the command again adding \`confirm\` if you are certain, or this was already confirmed.`
-        )
-        .setColor(0xfee75c);
-
-      const alreadyConfirmed = interaction.options.getString("target").includes("everyone confirm");
-
-      if (!alreadyConfirmed) {
-        return interaction.editReply({
-          content: "⚠️ To strip **everyone**, use `/strip target:everyone confirm` to confirm.",
-          embeds: [],
-        });
-      }
-
+    if (target.toLowerCase() === "everyone confirm") {
       let members;
       try {
         members = await getAllGroupMembers();
       } catch (err) {
-        return interaction.editReply(`❌ Failed to fetch group members: ${err.message}`);
+        return interaction.editReply(cv2Error(`Could not fetch group members.\n\`${err.message}\``));
       }
 
       let success = 0;
@@ -67,40 +67,59 @@ module.exports = {
         await new Promise((r) => setTimeout(r, 200));
       }
 
-      const embed = new EmbedBuilder()
-        .setTitle("✅ Strip Everyone Complete")
-        .setDescription(`Exiled **${success}** members. Failed: **${failed}**.`)
-        .setColor(0x57f287)
-        .setFooter({ text: `Group ID: ${GROUP_ID} • Done by ${interaction.user.tag}` })
-        .setTimestamp();
-
-      return interaction.editReply({ embeds: [embed] });
+      return interaction.editReply({
+        components: [
+          new ContainerBuilder()
+            .addTextDisplayComponents(
+              new TextDisplayBuilder().setContent(
+                `Strip complete.\n${success} exiled — ${failed} failed.`
+              )
+            ),
+        ],
+        flags: MessageFlags.IsComponentsV2,
+      });
     }
 
-    const username = target.replace("everyone confirm", "").trim() || target;
+    if (target.toLowerCase() === "everyone") {
+      return interaction.editReply({
+        components: [
+          new ContainerBuilder()
+            .addTextDisplayComponents(
+              new TextDisplayBuilder().setContent(
+                "To strip everyone, use `/strip target:everyone confirm`"
+              )
+            ),
+        ],
+        flags: MessageFlags.IsComponentsV2,
+      });
+    }
 
     let userId;
     try {
-      userId = await noblox.getIdFromUsername(username);
+      userId = await noblox.getIdFromUsername(target);
     } catch {
-      return interaction.editReply(`❌ Could not find Roblox user **${username}**.`);
+      return interaction.editReply(cv2Error(`User not found: **${target}**`));
     }
 
     try {
       await stripUser(userId);
     } catch (err) {
       return interaction.editReply(
-        `❌ Failed to exile **${username}**: ${err.message}\n\nMake sure the bot's Roblox account has exile permissions in the group.`
+        cv2Error(`Failed to exile **${target}**.\n\`${err.message}\``)
       );
     }
 
-    const embed = new EmbedBuilder()
-      .setTitle("✅ User Exiled / Stripped")
-      .setDescription(`**${username}** has been exiled from the group.`)
-      .setColor(0xed4245)
-      .setFooter({ text: `Group ID: ${GROUP_ID} • Done by ${interaction.user.tag}` })
-      .setTimestamp();
-
-    return interaction.editReply({ embeds: [embed] });
+    return interaction.editReply({
+      components: [
+        new ContainerBuilder()
+          .setAccentColor(0xed4245)
+          .addTextDisplayComponents(
+            new TextDisplayBuilder().setContent(
+              `**${target}** exiled.\nDone by ${interaction.user.username}`
+            )
+          ),
+      ],
+      flags: MessageFlags.IsComponentsV2,
+    });
   },
 };
