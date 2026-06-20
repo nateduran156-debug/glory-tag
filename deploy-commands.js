@@ -73,16 +73,22 @@ const commands = [
     .toJSON(),
 ];
 
+const globalCommands = commands.map((cmd) => ({
+  ...cmd,
+  integration_types: [0, 1],
+  contexts: [0, 1, 2],
+}));
+
 const rest = new REST({ version: "10" }).setToken(process.env.DISCORD_BOT_TOKEN);
 
 (async () => {
   try {
-    console.log(`Registering ${commands.length} global slash commands...`);
+    console.log(`Registering ${commands.length} global slash commands with User Install support...`);
     console.log(`Client ID: ${process.env.DISCORD_CLIENT_ID}`);
 
     const data = await rest.put(
       Routes.applicationCommands(process.env.DISCORD_CLIENT_ID),
-      { body: commands }
+      { body: globalCommands }
     );
 
     console.log(`\n✅ Successfully registered ${data.length} commands:`);

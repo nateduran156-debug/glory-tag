@@ -86,14 +86,24 @@ async function registerCommands() {
 
   try {
     if (guildId) {
-      // Guild registration = instant
+      // Guild commands register instantly — no DM-between-friends support here,
+      // but good for testing. For DMs with friends, remove DISCORD_GUILD_ID.
       await rest.put(Routes.applicationGuildCommands(CLIENT_ID, guildId), { body: commands });
-      console.log(`✅ Slash commands registered instantly in guild ${guildId}`);
+      console.log(`✅ Slash commands registered in guild ${guildId}`);
+      console.log("   Note: To use commands in DMs with friends, remove DISCORD_GUILD_ID from .env");
     } else {
-      // Global registration = up to 1 hour
-      await rest.put(Routes.applicationCommands(CLIENT_ID), { body: commands });
-      console.log("✅ Slash commands registered globally (may take up to 1 hour to appear)");
-      console.log("   Tip: Add DISCORD_GUILD_ID to your .env for instant registration.");
+      // Global commands with User Install support:
+      // integration_types [0,1] = guild install + user install
+      // contexts [0,1,2]        = servers, bot DMs, friend DMs / group chats
+      const globalCommands = commands.map((cmd) => ({
+        ...cmd,
+        integration_types: [0, 1],
+        contexts: [0, 1, 2],
+      }));
+      await rest.put(Routes.applicationCommands(CLIENT_ID), { body: globalCommands });
+      console.log("✅ Slash commands registered globally with User Install support");
+      console.log("   Works in: servers, bot DMs, and DMs/group chats with friends");
+      console.log("   May take up to 1 hour to appear globally");
     }
   } catch (err) {
     console.error("❌ Failed to register slash commands:", err.message);
