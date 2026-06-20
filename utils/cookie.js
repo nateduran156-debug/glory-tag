@@ -17,7 +17,7 @@ function loadCookie() {
 }
 
 async function applyCookie(cookie) {
-  await noblox.setCookie(cookie.trim(), false);
+  await noblox.setCookie(cookie.trim(), true);
   saveCookie(cookie);
 }
 
