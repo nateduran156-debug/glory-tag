@@ -17,8 +17,10 @@ function loadCookie() {
 }
 
 async function applyCookie(cookie) {
-  await noblox.setCookie(cookie.trim(), true);
+  await noblox.setCookie(cookie.trim(), false);
   saveCookie(cookie);
+  const me = await noblox.getCurrentUser();
+  return me;
 }
 
 module.exports = { saveCookie, loadCookie, applyCookie };
