@@ -4,6 +4,7 @@ const {
   EmbedBuilder,
 } = require("discord.js");
 const noblox = require("noblox.js");
+const { isAllowed } = require("../utils/whitelist");
 
 const GROUP_ID = parseInt(process.env.ROBLOX_GROUP_ID || "35914267");
 
@@ -19,6 +20,10 @@ module.exports = {
 
   async execute(interaction) {
     await interaction.deferReply({ ephemeral: true });
+
+    if (!isAllowed(interaction.user.id)) {
+      return interaction.editReply("❌ You are not whitelisted to use this bot.");
+    }
 
     const username = interaction.options.getString("username");
 
