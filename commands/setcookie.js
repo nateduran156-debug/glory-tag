@@ -36,23 +36,16 @@ module.exports = {
 
     const cookie = interaction.options.getString("cookie").trim();
 
+    let me;
     try {
-      await applyCookie(cookie);
+      me = await applyCookie(cookie);
     } catch (err) {
       return interaction.editReply(
-        cv2(
-          `Failed to apply cookie.\n\`${err.message}\`\n\nMake sure you copied the full \`.ROBLOSECURITY\` value from your browser and try again.`
-        )
+        cv2(`Cookie rejected by Roblox.\n\`${err.message}\`\n\nThe cookie was set in the bot's session but could not be verified. Try using \`/strip\` or \`/role\` — if those work, the cookie is fine. If not, grab a fresh one from your browser.`)
       );
     }
 
-    let verifiedAs = null;
-    try {
-      const me = await noblox.getCurrentUser();
-      verifiedAs = `${me.UserName} (${me.UserID})`;
-    } catch {
-      // continue
-    }
+    const verifiedAs = me ? `${me.UserName} (${me.UserID})` : null;
 
     if (verifiedAs) {
       return interaction.editReply({
@@ -68,9 +61,7 @@ module.exports = {
     }
 
     return interaction.editReply(
-      cv2(
-        "Cookie saved but Roblox could not verify the session.\n\nGet a fresh `.ROBLOSECURITY` cookie from your browser and try again."
-      )
+      cv2("Cookie saved. Could not confirm the session — test with `/strip` or `/role` to verify it works.")
     );
   },
 };
