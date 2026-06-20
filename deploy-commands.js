@@ -1,6 +1,15 @@
 require("dotenv").config();
 const { REST, Routes, SlashCommandBuilder } = require("discord.js");
 
+if (!process.env.DISCORD_BOT_TOKEN) {
+  console.error("❌ DISCORD_BOT_TOKEN is missing from your .env file.");
+  process.exit(1);
+}
+if (!process.env.DISCORD_CLIENT_ID) {
+  console.error("❌ DISCORD_CLIENT_ID is missing from your .env file.");
+  process.exit(1);
+}
+
 const commands = [
   new SlashCommandBuilder()
     .setName("role")
@@ -64,28 +73,26 @@ const commands = [
     .toJSON(),
 ];
 
-const contexts = [0, 1, 2];
-const integrationTypes = [0, 1];
-
-const commandsWithContexts = commands.map((cmd) => ({
-  ...cmd,
-  contexts,
-  integration_types: integrationTypes,
-}));
-
 const rest = new REST({ version: "10" }).setToken(process.env.DISCORD_BOT_TOKEN);
 
 (async () => {
   try {
-    console.log("Registering global slash commands...");
-    await rest.put(Routes.applicationCommands(process.env.DISCORD_CLIENT_ID), {
-      body: commandsWithContexts,
-    });
-    console.log("✅ Global slash commands registered!");
-    console.log("   Commands: /role, /strip, /whitelist, /setcookie");
-    console.log("   Works in: servers, bot DMs, and DMs between users.");
-    console.log("   Note: May take up to 1 hour to propagate globally.");
+    console.log(`Registering ${commands.length} global slash commands...`);
+    console.log(`Client ID: ${process.env.DISCORD_CLIENT_ID}`);
+
+    const data = await rest.put(
+      Routes.applicationCommands(process.env.DISCORD_CLIENT_ID),
+      { body: commands }
+    );
+
+    console.log(`\n✅ Successfully registered ${data.length} commands:`);
+    data.forEach((cmd) => console.log(`   /${cmd.name}`));
+    console.log("\n⏳ Global commands can take up to 1 hour to show up in Discord.");
+    console.log("   To test immediately, type / in any server the bot is in.");
   } catch (err) {
-    console.error("Failed to register commands:", err);
+    console.error("\n❌ Failed to register commands:");
+    console.error("   Status:", err.status);
+    console.error("   Message:", err.message);
+    if (err.rawError) console.error("   Details:", JSON.stringify(err.rawError, null, 2));
   }
 })();
