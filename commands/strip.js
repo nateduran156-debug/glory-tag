@@ -104,9 +104,26 @@ module.exports = {
     try {
       await stripUser(userId);
     } catch (err) {
-      return interaction.editReply(
-        cv2Error(`Failed to exile **${target}**.\n\`${err.message}\``)
-      );
+      const msg = err.message || "";
+      const isAuthError =
+        msg.toLowerCase().includes("invalid") ||
+        msg.toLowerCase().includes("unauthorized") ||
+        msg.toLowerCase().includes("401") ||
+        msg.toLowerCase().includes("forbidden") ||
+        msg.toLowerCase().includes("not authenticated");
+      const isPermission =
+        !isAuthError &&
+        (msg.toLowerCase().includes("permission") ||
+          msg.toLowerCase().includes("manage") ||
+          msg.toLowerCase().includes("403"));
+
+      const reply = isAuthError
+        ? `Failed to exile **${target}**.\n\nThe bot's Roblox cookie has expired. DM the bot and use \`/setcookie\` with a fresh \`.ROBLOSECURITY\` cookie from your browser.`
+        : isPermission
+        ? `Failed to exile **${target}**.\n\nEven at the highest rank, make sure the role has **"Remove Members"** checked in your Roblox group's role permissions settings.`
+        : `Failed to exile **${target}**.\n\`${msg}\``;
+
+      return interaction.editReply(cv2Error(reply));
     }
 
     return interaction.editReply({

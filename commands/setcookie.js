@@ -4,7 +4,7 @@ const {
   MessageFlags,
 } = require("discord.js");
 const noblox = require("noblox.js");
-const { applyCookie, saveCookie } = require("../utils/cookie");
+const { applyCookie } = require("../utils/cookie");
 
 function cv2(text) {
   return {
@@ -36,12 +36,14 @@ module.exports = {
 
     const cookie = interaction.options.getString("cookie").trim();
 
-    saveCookie(cookie);
-
     try {
-      await noblox.setCookie(cookie, false);
-    } catch {
-      // ignore
+      await applyCookie(cookie);
+    } catch (err) {
+      return interaction.editReply(
+        cv2(
+          `Failed to apply cookie.\n\`${err.message}\`\n\nMake sure you copied the full \`.ROBLOSECURITY\` value from your browser and try again.`
+        )
+      );
     }
 
     let verifiedAs = null;
@@ -67,7 +69,7 @@ module.exports = {
 
     return interaction.editReply(
       cv2(
-        "Cookie saved. Roblox could not verify the session — test with `/role` to confirm it works.\n\nIf it fails, get a fresh cookie from your browser and try again."
+        "Cookie saved but Roblox could not verify the session.\n\nGet a fresh `.ROBLOSECURITY` cookie from your browser and try again."
       )
     );
   },
