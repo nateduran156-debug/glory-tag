@@ -1,6 +1,6 @@
 const { EmbedBuilder } = require("discord.js");
 const noblox = require("noblox.js");
-const { applyCookie } = require("../utils/cookie");
+const { applyCookie, saveCookie } = require("../utils/cookie");
 
 module.exports = {
   name: "setcookie",
@@ -13,35 +13,48 @@ module.exports = {
       return interaction.editReply("❌ Only the bot owner can use this command.");
     }
 
-    if (interaction.guild) {
-      return interaction.editReply(
-        "⚠️ For security, only use `/setcookie` in a **DM with the bot** — never in a server channel.\n\nOpen a DM with the bot and try again."
-      );
-    }
-
     const cookie = interaction.options.getString("cookie").trim();
 
-    if (!cookie.startsWith("_|WARNING")) {
-      return interaction.editReply(
-        "❌ That doesn't look like a valid `.ROBLOSECURITY` cookie.\n\nIt should start with `_|WARNING:-DO-NOT-SHARE-THIS...`\n\nMake sure you copy the **full** cookie value."
-      );
-    }
+    // Save cookie to disk regardless of validation result
+    saveCookie(cookie);
 
+    // Try to apply and verify — but don't fail if verification fails
     try {
-      await applyCookie(cookie);
-      const me = await noblox.getCurrentUser();
-
-      const embed = new EmbedBuilder()
-        .setTitle("✅ Cookie Updated")
-        .setDescription(`Logged into Roblox as **${me.UserName}** (\`${me.UserID}\`).\n\nThe new cookie has been saved — the bot will use it automatically on next restart too.`)
-        .setColor(0x57f287)
-        .setTimestamp();
-
-      return interaction.editReply({ embeds: [embed] });
+      await noblox.setCookie(cookie, false);
     } catch (err) {
-      return interaction.editReply(
-        `❌ Cookie was rejected by Roblox: ${err.message}\n\nMake sure you copied the full value including the \`_|WARNING...\` prefix.`
-      );
+      // ignore — setCookie itself shouldn't throw with validate=false
     }
+
+    let verifiedAs = null;
+    try {
+      const me = await noblox.getCurrentUser();
+      verifiedAs = `${me.UserName} (${me.UserID})`;
+    } catch {
+      // Cookie may still work for ranking even if getCurrentUser fails
+    }
+
+    const embed = new EmbedBuilder().setTimestamp();
+
+    if (verifiedAs) {
+      embed
+        .setTitle("✅ Cookie Saved & Verified")
+        .setDescription(`Logged into Roblox as **${verifiedAs}**.\n\nThe bot will use this cookie for all ranking actions.`)
+        .setColor(0x57f287);
+    } else {
+      embed
+        .setTitle("⚠️ Cookie Saved (Not Verified)")
+        .setDescription(
+          `The cookie was saved but Roblox couldn't verify it right now.\n\n` +
+          `**Try using \`/role\` or \`/strip\` — it may still work.**\n\n` +
+          `If ranking fails too, your cookie may be expired. Get a fresh one:\n` +
+          `1. Open Chrome and log into **roblox.com**\n` +
+          `2. Press **F12** → Application → Cookies → \`https://www.roblox.com\`\n` +
+          `3. Find \`.ROBLOSECURITY\` and copy the **entire Value**\n` +
+          `4. Run \`/setcookie\` again with the fresh value`
+        )
+        .setColor(0xfee75c);
+    }
+
+    return interaction.editReply({ embeds: [embed] });
   },
 };
